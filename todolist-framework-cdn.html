@@ -19,10 +19,10 @@
 		</script>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
-	<div class="flex">
-		<div id="r-id" class="w-1/2"></div>
-		<div id="v-id" class="w-1/2"></div>
+<body class="min-h-screen bg-gray-50">
+	<div class="flex flex-col gap-y-8 md:flex-row">
+		<div id="r-id" class="md:w-1/2"></div>
+		<div id="v-id" class="md:w-1/2"></div>
 	</div>
 
 	<script type="module">
@@ -46,7 +46,7 @@
 		import React from 'react';
 		import { createRoot } from 'react-dom/client';
 
-		function Item({ onChange, ...props }) {
+		function TodoItem({ onChange, ...props }) {
 			const [state, setState] = React.useState(props);
 
 			const onToggle = () => {
@@ -85,12 +85,7 @@
 			};
 
 			return (
-				<li
-					className={cn(
-						'flex w-full items-center gap-2 rounded-lg border border-gray-300 p-2',
-						state.select ? 'bg-green-100' : 'bg-white'
-					)}
-				>
+				<li className={cn('flex w-full items-center gap-2 rounded-lg border border-gray-300 bg-white p-2', state.select && 'bg-green-100')}>
 					<input
 						className='h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500'
 						type='checkbox'
@@ -104,28 +99,28 @@
 								className='w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500'
 								autoComplete='off'
 								value={state.content}
-								onInput={(event) => setState((prev) => ({ ...prev, content: event.target.value }))}
+								onInput={event => setState(prev => ({ ...prev, content: event.target.value }))}
 							/>
 						) : (
-							<div className={cn(state.select && 'line-through')}>{state.content}</div>
+							<div className={state.select && 'line-through'}>{state.content}</div>
 						)}
 					</div>
 
 					{state.isEdit ? (
 						<>
-							<span className='cursor-pointer rounded py-1 px-2 hover:bg-gray-100' onClick={onSave}>
+							<span className='cursor-pointer rounded px-2 py-1 hover:bg-gray-100' onClick={onSave}>
 								✅
 							</span>
-							<span className='cursor-pointer rounded py-1 px-2 hover:bg-gray-100' onClick={onCancel}>
+							<span className='cursor-pointer rounded px-2 py-1 hover:bg-gray-100' onClick={onCancel}>
 								❌
 							</span>
 						</>
 					) : (
 						<>
-							<span className='cursor-pointer rounded py-1 px-2 hover:bg-gray-100' onClick={onEdit}>
+							<span className='cursor-pointer rounded px-2 py-1 hover:bg-gray-100' onClick={onEdit}>
 								✏️
 							</span>
-							<span className='cursor-pointer rounded py-1 px-2 hover:bg-gray-100' onClick={onRemove}>
+							<span className='cursor-pointer rounded px-2 py-1 hover:bg-gray-100' onClick={onRemove}>
 								🗑️
 							</span>
 						</>
@@ -143,8 +138,9 @@
 
 			const completed = list.filter((item) => item.select).length;
 			const uncompleted = list.filter((item) => !item.select).length;
+			const checkedAll = list.every(item => item.select)
 
-			const addTodo = (form) => {
+			const handleAddTodo = (form) => {
 				const todo = form.get('todo');
 				if (todo) {
 					setList((prev) => [
@@ -167,23 +163,27 @@
 				});
 			};
 
+			const handleSelectAll = (event) => {
+				setList((prev) =>
+					prev.map((item) => {
+						item.select = event.target.checked;
+						item.newId = uuid();
+						return item;
+					})
+				);
+			}
+
+
 			return (
 				<div className='mx-auto w-full max-w-xl space-y-6 p-6'>
 					<h1 className='text-center text-2xl font-bold'>React 待办事项列表</h1>
 
-					<form className='flex items-center gap-3' action={addTodo}>
+					<form className='flex items-center gap-3' action={handleAddTodo}>
 						<input
 							className='h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500'
 							type='checkbox'
-							onChange={(event) => {
-								setList((prev) =>
-									prev.map((item) => {
-										item.select = event.target.checked;
-										item.newId = uuid();
-										return item;
-									})
-								);
-							}}
+							checked={checkedAll}
+							onChange={handleSelectAll}
 						/>
 
 						<input
@@ -198,8 +198,8 @@
 					</form>
 
 					<ul className='w-full space-y-2'>
-						{list.map((item) => (
-							<Item key={item.newId ?? item.id} {...item} onChange={(event) => handleChange(event, item.id)} />
+						{list.map(item => (
+							<TodoItem key={item.newId ?? item.id} {...item} onChange={event => handleChange(event, item.id)} />
 						))}
 					</ul>
 
@@ -220,7 +220,7 @@
 	<script type="module">
 		import { createApp, defineComponent, ref, reactive, computed } from 'vue';
 
-		const Item = defineComponent({
+		const TodoItem = defineComponent({
 			emits: ['change'],
 			setup(props, { emit, attrs }) {
 				const state = reactive({ ...attrs });
@@ -264,33 +264,44 @@
 					onSave,
 					onCancel,
 					onEdit,
-					onRemove
+					onRemove,
+					cn
 				};
 			},
 			template: `
-					<li class="flex w-full items-center gap-2 rounded-lg border border-gray-300 p-2" :class="state.select ? 'bg-green-100' : 'bg-white'">
-						<input class="h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500" type="checkbox" :checked="state.select" @change="onToggle" />
+				<li :class="cn('flex w-full items-center gap-2 rounded-lg border border-gray-300 bg-white p-2', state.select && 'bg-green-100')">
+					<input
+						class="h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500"
+						type="checkbox"
+						:checked="state.select"
+						@change="onToggle"
+					/>
 
-						<div class="flex-1">
-							<input v-if="state.isEdit" v-model="state.content" class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500" autoComplete="off" />
-							<div v-else :class="state.select && 'line-through'">{{ state.content }}</div>
-						</div>
+					<div class="flex-1">
+						<input
+							v-if="state.isEdit"
+							v-model="state.content"
+							class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+							autoComplete="off"
+						/>
+						<div v-else :class="state.select && 'line-through'">{{ state.content }}</div>
+					</div>
 
-						<template v-if="state.isEdit">
-							<span class="cursor-pointer rounded py-1 px-2 hover:bg-gray-100" @click="onSave">✅</span>
-							<span class="cursor-pointer rounded py-1 px-2 hover:bg-gray-100" @click="onCancel">❌</span>
-						</template>
+					<template v-if="state.isEdit">
+						<span class="cursor-pointer rounded px-2 py-1 hover:bg-gray-100" @click="onSave">✅</span>
+						<span class="cursor-pointer rounded px-2 py-1 hover:bg-gray-100" @click="onCancel">❌</span>
+					</template>
 
-						<template v-else>
-							<span class="cursor-pointer rounded py-1 px-2 hover:bg-gray-100" @click="onEdit">✏️</span>
-							<span class="cursor-pointer rounded py-1 px-2 hover:bg-gray-100" @click="onRemove">🗑️</span>
-						</template>
-					</li>
+					<template v-else>
+						<span class="cursor-pointer rounded px-2 py-1 hover:bg-gray-100" @click="onEdit">✏️</span>
+						<span class="cursor-pointer rounded px-2 py-1 hover:bg-gray-100" @click="onRemove">🗑️</span>
+					</template>
+				</li>
 				`
 		});
 
 		const App = defineComponent({
-			components: { Item },
+			components: { TodoItem },
 			setup() {
 				const list = ref([
 					{ id: 1, select: false, content: '代办事项1', isEdit: false },
@@ -300,8 +311,9 @@
 
 				const completed = computed(() => list.value.filter((i) => i.select).length);
 				const uncompleted = computed(() => list.value.length - completed.value);
+				const checkedAll = computed(() => list.value.every(item => item.select))
 
-				const addTodo = (event) => {
+				const handleAddTodo = (event) => {
 					const from = new FormData(event.target);
 					const todo = from.get('todo');
 					if (todo) {
@@ -324,7 +336,7 @@
 					}
 				};
 
-				const selectAll = (event) => {
+				const handleSelectAll = (event) => {
 					list.value = list.value.map((item) => {
 						item.select = event.target.checked;
 						item.newId = uuid();
@@ -336,35 +348,44 @@
 					list,
 					completed,
 					uncompleted,
-					addTodo,
+					checkedAll,
+					handleAddTodo,
 					handleChange,
-					selectAll
+					handleSelectAll
 				};
 			},
 			template: `
-					<div class="mx-auto w-full max-w-xl space-y-6 p-6">
-						<h1 class="text-center text-2xl font-bold">Vue 待办事项列表</h1>
+						<div class="mx-auto w-full max-w-xl space-y-6 p-6">
+							<h1 class="text-center text-2xl font-bold">Vue 待办事项列表</h1>
 
-						<form class="flex items-center gap-3" @submit.prevent="addTodo">
-							<input className="h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500" type="checkbox" @change="selectAll" />
-							<input class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" name="todo" autoComplete="off" placeholder="请输入事项..." />
-							<button class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white shadow hover:bg-blue-700" type="submit">
-								添加
-							</button>
-						</form>
+							<form class="flex items-center gap-3" @submit.prevent="handleAddTodo">
+								<input
+									class="h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500"
+									type="checkbox"
+									:checked="checkedAll"
+									@change="handleSelectAll"
+								/>
+								<input
+									class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+									name="todo"
+									autoComplete="off"
+									placeholder="请输入事项..."
+								/>
+								<button class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white shadow hover:bg-blue-700" type="submit">添加</button>
+							</form>
 
-						<ul class="w-full space-y-2">
-							<Item v-for="item in list" :key="item.newId ?? item.id" v-bind="item" @change="handleChange($event, item.id)" />
-						</ul>
+							<ul class="w-full space-y-2">
+								<todo-item v-for="item in list" :key="item.newId ?? item.id" v-bind="item" @change="handleChange($event, item.id)" />
+							</ul>
 
-						<div class="w-full rounded-lg bg-gray-100 p-4 shadow-md">
-							<h2 class="font-medium">数组状态统计：</h2>
-							<p>• 数组长度: {{ list.length }}</p>
-							<p>• 已完成: {{ completed }}</p>
-							<p>• 未完成: {{ uncompleted }}</p>
-							<p>• 完成率: {{ Math.floor((completed / list.length) * 100) }}%</p>
+							<div class="w-full rounded-lg bg-gray-100 p-4 shadow-md">
+								<h2 class="font-medium">数组状态统计：</h2>
+								<p>• 数组长度: {{ list.length }}</p>
+								<p>• 已完成: {{ completed }}</p>
+								<p>• 未完成: {{ uncompleted }}</p>
+								<p>• 完成率: {{ Math.floor((completed / list.length) * 100) }}%</p>
+							</div>
 						</div>
-					</div>
 				`
 		});
 
