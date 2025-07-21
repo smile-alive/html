@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh">
+	<head>
+		<meta charset="UTF-8" />
+		<title>TodoList - React</title>
+		<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser/dist/index.global.min.js"></script>
+		<script type="importmap">
+			{
+				"imports": {
+					"react": "https://cdn.jsdelivr.net/npm/react@19.1.0/+esm",
+					"react-dom/client": "https://cdn.jsdelivr.net/npm/react-dom@19.1.0/client/+esm",
+					"clsx": "https://cdn.jsdelivr.net/npm/clsx/+esm",
+					"tailwind-merge": "https://cdn.jsdelivr.net/npm/tailwind-merge/+esm"
+				}
+			}
+		</script>
+	</head>
+
+	<body class="min-h-screen bg-gray-50">
+		<div id="root"></div>
+
+		<script type="module">
+			import { twMerge } from "tailwind-merge";
+			import { clsx } from "clsx";
+
+			window.cn = function cn(...inputs) {
+				return twMerge(clsx(inputs));
+			};
+		</script>
+
+		<script type="text/babel" data-type="module">
+			import React, { useState } from "react";
+			import { createRoot } from "react-dom/client";
+
+			function TodoItem({ onChange, ...props }) {
+				const [state, setState] = useState(props);
+
+				const onToggle = () => {
+					onChange?.({
+						...state,
+						select: !state.select,
+						newId: crypto.randomUUID(),
+					});
+				};
+
+				const onSave = () => {
+					onChange?.({
+						...state,
+						isEdit: false,
+						newId: crypto.randomUUID(),
+					});
+				};
+
+				const onCancel = () => {
+					setState((prev) => ({
+						...prev,
+						isEdit: false,
+						content: props.content,
+					}));
+				};
+
+				const onEdit = () => {
+					setState((prev) => ({
+						...prev,
+						isEdit: true,
+					}));
+				};
+
+				const onRemove = () => {
+					onChange?.(null);
+				};
+
+				return (
+					<li
+						className={cn(
+							"flex w-full items-center gap-2 rounded-lg border border-gray-300 bg-white p-2",
+							state.select && "bg-green-100"
+						)}
+					>
+						<input
+							className="h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500"
+							type="checkbox"
+							checked={state.select}
+							onChange={onToggle}
+						/>
+
+						<div className="flex-1">
+							{state.isEdit ? (
+								<input
+									className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+									autoComplete="off"
+									value={state.content}
+									onInput={(event) =>
+										setState((prev) => ({
+											...prev,
+											content: event.target.value,
+										}))
+									}
+								/>
+							) : (
+								<div className={state.select && "line-through"}>
+									{state.content}
+								</div>
+							)}
+						</div>
+
+						{state.isEdit ? (
+							<>
+								<span
+									className="cursor-pointer rounded px-2 py-1 hover:bg-gray-100"
+									onClick={onSave}
+								>
+									✅
+								</span>
+								<span
+									className="cursor-pointer rounded px-2 py-1 hover:bg-gray-100"
+									onClick={onCancel}
+								>
+									❌
+								</span>
+							</>
+						) : (
+							<>
+								<span
+									className="cursor-pointer rounded px-2 py-1 hover:bg-gray-100"
+									onClick={onEdit}
+								>
+									✏️
+								</span>
+								<span
+									className="cursor-pointer rounded px-2 py-1 hover:bg-gray-100"
+									onClick={onRemove}
+								>
+									🗑️
+								</span>
+							</>
+						)}
+					</li>
+				);
+			}
+
+			function App() {
+				const [list, setList] = useState([
+					{ id: 1, select: false, content: "代办事项1", isEdit: false },
+					{ id: 2, select: false, content: "代办事项2", isEdit: false },
+					{ id: 3, select: false, content: "代办事项3", isEdit: false },
+				]);
+
+				const completed = list.filter((item) => item.select).length;
+				const uncompleted = list.filter((item) => !item.select).length;
+				const checkedAll = list.every((item) => item.select);
+
+				const handleAddTodo = (form) => {
+					const todo = form.get("todo");
+					if (todo) {
+						setList((prev) => [
+							...prev,
+							{
+								id: prev.length + 1,
+								select: false,
+								content: todo,
+								isEdit: false,
+							},
+						]);
+					}
+				};
+
+				const handleChange = (item, originalId) => {
+					setList((prev) => {
+						const i = prev.findIndex((each) => each.id === item.id);
+						prev[i] = item;
+						return [...prev].filter(Boolean);
+					});
+				};
+
+				const handleSelectAll = (event) => {
+					setList((prev) =>
+						prev.map((item) => {
+							item.select = event.target.checked;
+							item.newId = crypto.randomUUID();
+							return item;
+						})
+					);
+				};
+
+				return (
+					<div className="mx-auto w-full max-w-xl space-y-6 p-6">
+						<h1 className="text-center text-2xl font-bold">
+							React TodoList Demo
+						</h1>
+
+						<form className="flex items-center gap-3" action={handleAddTodo}>
+							<input
+								className="h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500"
+								type="checkbox"
+								checked={checkedAll}
+								onChange={handleSelectAll}
+							/>
+
+							<input
+								className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+								name="todo"
+								autoComplete="off"
+								placeholder="请输入事项..."
+							/>
+							<button
+								className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white shadow hover:bg-blue-700"
+								type="submit"
+							>
+								添加
+							</button>
+						</form>
+
+						<ul className="w-full space-y-2">
+							{list.map((item) => (
+								<TodoItem
+									key={item.newId ?? item.id}
+									{...item}
+									onChange={(event) => handleChange(event, item.id)}
+								/>
+							))}
+						</ul>
+
+						<div className="w-full rounded-lg bg-gray-100 p-4 shadow-md">
+							<h2 className="font-medium">数组状态统计：</h2>
+							<p>• 数组长度: {list.length}</p>
+							<p>• 已完成: {completed}</p>
+							<p>• 未完成: {uncompleted}</p>
+							<p>• 完成率: {Math.floor((completed / list.length) * 100)}%</p>
+						</div>
+					</div>
+				);
+			}
+
+			createRoot(document.getElementById("root")).render(<App />);
+		</script>
+	</body>
+</html>

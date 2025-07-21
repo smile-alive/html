@@ -1,16 +1,11 @@
 # TodoList
 
-这个项目提供了一个基于 CDN 的 TodoList 框架。
+使用 CDN 引入 Vue 和 React 的 TodoList 示例。
 
 ## 特点
 
 - 使用 React 和 Vue 来构建 TodoList 应用程序
 - 使用 Tailwind CSS 进行样式和布局
-
-## 项目结构
-
-- `todolist-framework-cdn.html`：项目入口文件
-- `README.md`：项目文档
 
 ## 依赖
 
