@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh">
+	<head>
+		<meta charset="UTF-8" />
+		<title>TodoList - SolidJS</title>
+		<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser/dist/index.global.min.js"></script>
+		<script type="importmap">
+			{
+				"imports": {
+					"solid-js": "https://cdn.jsdelivr.net/npm/solid-js/+esm",
+					"solid-js/web": "https://cdn.jsdelivr.net/npm/solid-js/web/+esm",
+					"solid-js/html": "https://cdn.jsdelivr.net/npm/solid-js/html/+esm",
+					"clsx": "https://cdn.jsdelivr.net/npm/clsx/+esm",
+					"tailwind-merge": "https://cdn.jsdelivr.net/npm/tailwind-merge/+esm"
+				}
+			}
+		</script>
+	</head>
+
+	<body class="min-h-screen bg-gray-50">
+		<div id="root"></div>
+
+		<script type="module">
+			import { twMerge } from "tailwind-merge";
+			import { clsx } from "clsx";
+
+			window.cn = (...args) => twMerge(clsx(args));
+		</script>
+
+		<script type="module">
+			import { createSignal, createEffect, splitProps, For } from "solid-js";
+			import { render } from "solid-js/web";
+			import html from "solid-js/html";
+
+			function TodoItem(props) {
+				const [_, _props] = splitProps(props, ["onChange"]);
+				const [state, setState] = createSignal(_props);
+
+				createEffect(() => {
+					console.log(state());
+				});
+
+				const onToggle = () => {
+					setState({
+						...state(),
+						select: !state().select,
+						newId: crypto.randomUUID(),
+					});
+					props.onChange?.({
+						...state(),
+						select: !state().select,
+						newId: crypto.randomUUID(),
+					});
+				};
+
+				const onSave = () => {
+					props.onChange?.({
+						...state(),
+						isEdit: false,
+						newId: crypto.randomUUID(),
+					});
+				};
+
+				const onCancel = () => {
+					setState((prev) => ({
+						...prev,
+						isEdit: false,
+						content: content,
+					}));
+				};
+
+				const onEdit = () => {
+					setState((prev) => ({
+						...prev,
+						isEdit: true,
+					}));
+				};
+
+				const onRemove = () => {
+					props.onChange?.(null);
+				};
+
+				return html`
+					<li
+						class=${cn(
+							"flex w-full items-center gap-2 rounded-lg border border-gray-300 bg-white p-2",
+							state().select && "bg-green-100"
+						)}
+					>
+						<input
+							class="h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500"
+							type="checkbox"
+							checked=${state().select}
+							onChange=${onToggle}
+						/>
+
+						<div class="flex-1">
+							${state().isEdit
+								? html`
+										<input
+											class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+											autocomplete="off"
+											value=${state().content}
+											onInput=${(e) =>
+												setState((prev) => ({
+													...prev,
+													content: e.target.value,
+												}))}
+										/>
+								  `
+								: html`
+										<div class=${state().select && "line-through"}>
+											${state().content}
+										</div>
+								  `}
+						</div>
+
+						${state().isEdit
+							? html`
+									<span
+										class="cursor-pointer rounded px-2 py-1 hover:bg-gray-100"
+										onClick=${onSave}
+									>
+										✅
+									</span>
+									<span
+										class="cursor-pointer rounded px-2 py-1 hover:bg-gray-100"
+										onClick=${onCancel}
+									>
+										❌
+									</span>
+							  `
+							: html`
+									<span
+										class="cursor-pointer rounded px-2 py-1 hover:bg-gray-100"
+										onClick=${onEdit}
+									>
+										✏️
+									</span>
+									<span
+										class="cursor-pointer rounded px-2 py-1 hover:bg-gray-100"
+										onClick=${onRemove}
+									>
+										🗑️
+									</span>
+							  `}
+					</li>
+				`;
+			}
+
+			function App() {
+				const [list, setList] = createSignal([
+					{ id: 1, select: false, content: "代办事项1", isEdit: false },
+					{ id: 2, select: false, content: "代办事项2", isEdit: false },
+					{ id: 3, select: false, content: "代办事项3", isEdit: false },
+				]);
+
+				const completed = () => list().filter((item) => item.select).length;
+				const uncompleted = () => list().filter((item) => !item.select).length;
+				const checkedAll = () => list().every((item) => item.select);
+
+				const handleAddTodo = (e) => {
+					e.preventDefault();
+					const form = new FormData(e.target);
+					const todo = form.get("todo");
+					if (todo) {
+						setList((prev) => {
+							return [
+								...prev,
+								{
+									id: prev.length + 1,
+									select: false,
+									content: todo,
+									isEdit: false,
+								},
+							];
+						});
+						e.target.reset();
+					}
+				};
+
+				const handleChange = (item, originalId) => {
+					console.log('🚀 ~ handleChange ~ item =>', item)
+					setList((prev) => {
+						const i = prev.findIndex((each) => each.id === item.id);
+						prev[i] = item;
+						return [...prev].filter(Boolean);
+					});
+				};
+
+				const handleSelectAll = (e) => {
+					setList((prev) =>
+						prev.map((item) => ({
+							...item,
+							select: e.target.checked,
+							newId: crypto.randomUUID(),
+						}))
+					);
+				};
+
+				return html`
+					<div class="mx-auto w-full max-w-xl space-y-6 p-6">
+						<h1 class="text-center text-2xl font-bold">Solid TodoList Demo</h1>
+
+						<form class="flex items-center gap-3" onSubmit=${handleAddTodo}>
+							<input
+								class="h-4 w-4 rounded-sm border border-gray-300 bg-gray-100 text-blue-600 focus:ring-blue-500"
+								type="checkbox"
+								checked=${checkedAll()}
+								onChange=${handleSelectAll}
+							/>
+
+							<input
+								class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+								name="todo"
+								autocomplete="off"
+								placeholder="请输入事项..."
+							/>
+							<button
+								class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white shadow hover:bg-blue-700"
+								type="submit"
+							>
+								添加
+							</button>
+						</form>
+
+						<ul class="w-full space-y-2">
+							${list().map(
+								(item) => html`
+									<${TodoItem}
+										key=${item.newId ?? item.id}
+										...${item}
+										onChange=${(event) => handleChange(event, item.id)}
+									/>
+								`
+							)}
+						</ul>
+
+						<div class="w-full rounded-lg bg-gray-100 p-4 shadow-md">
+							<h2 class="font-medium">数组状态统计：</h2>
+							<p>• 数组长度: ${list().length}</p>
+							<p>• 已完成: ${completed()}</p>
+							<p>• 未完成: ${uncompleted()}</p>
+							<p>
+								• 完成率: ${Math.floor((completed() / list().length) * 100)}%
+							</p>
+						</div>
+					</div>
+				`;
+			}
+
+			render(App, document.getElementById("root"));
+		</script>
+	</body>
+</html>

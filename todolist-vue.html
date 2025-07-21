@@ -22,9 +22,7 @@
 			import { twMerge } from "tailwind-merge";
 			import { clsx } from "clsx";
 
-			window.cn = function cn(...inputs) {
-				return twMerge(clsx(inputs));
-			};
+			window.cn = (...args) => twMerge(clsx(args));
 		</script>
 
 		<script type="module">
@@ -153,11 +151,11 @@
 					};
 
 					const handleSelectAll = (event) => {
-						list.value = list.value.map((item) => {
-							item.select = event.target.checked;
-							item.newId = crypto.randomUUID();
-							return item;
-						});
+						list.value = list.value.map((item) => ({
+							...item,
+							select: event.target.checked,
+							newId: crypto.randomUUID(),
+						}));
 					};
 
 					return {
